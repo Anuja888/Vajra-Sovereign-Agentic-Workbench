@@ -1,0 +1,76 @@
+version: "3.9"
+
+# VAJRA — Sovereign Agentic Workbench
+# All data is SYNTHETIC and clearly fictional.
+#
+# Quick start:
+#   cp .env.example .env       # edit CORS_ORIGIN if needed
+#   docker compose up --build  # first run (builds images)
+#   docker compose up -d       # subsequent runs (background)
+#   docker compose logs -f     # follow logs
+#   docker compose down        # stop (data preserved in vajra_data volume)
+#   docker compose down -v     # stop AND delete all persisted data
+
+services:
+
+  # ── Backend API (Fastify, SSE, in-memory state) ────────────────────────────
+  server:
+    build:
+      context: .                          # repo root — needed for workspace resolution
+      dockerfile: apps/server/Dockerfile
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      HOST: "0.0.0.0"
+      # CORS: comma-separated list of allowed frontend origins.
+      # Default allows the web container (nginx on port 80) served locally.
+      CORS_ORIGIN: "${CORS_ORIGIN:-http://localhost}"
+    # Expose port 3000 for local debugging / Postman.
+    # Remove this 'ports' block in production if you want the server
+    # reachable only through the nginx proxy inside the Docker network.
+    ports:
+      - "3000:3000"
+    volumes:
+      # Reserve a volume for future SQLite persistence
+      - vajra_data:/app/data
+    networks:
+      - vajra_net
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
+      interval: 15s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
+
+  # ── Frontend (nginx serving static Vite build + /api proxy) ───────────────
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        # Empty = same-origin; nginx proxies /api → server:3000.
+        # Override for external backends: VITE_API_URL=https://api.example.com
+        VITE_API_URL: "${VITE_API_URL:-}"
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    networks:
+      - vajra_net
+    depends_on:
+      server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost/health.txt"]
+      interval: 15s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+
+networks:
+  vajra_net:
+    driver: bridge
+
+volumes:
+  vajra_data:
+    driver: local

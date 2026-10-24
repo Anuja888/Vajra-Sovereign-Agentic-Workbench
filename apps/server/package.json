@@ -1,0 +1,30 @@
+{
+  "name": "@vajra/server",
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "build": "node build.mjs",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@vajra/agent-core": "workspace:*",
+    "@vajra/models": "workspace:*",
+    "@vajra/shared": "workspace:*",
+    "better-sqlite3": "^11.3.0",
+    "fastify": "^4.28.1",
+    "ws": "^8.18.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "esbuild": "^0.28.2",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.19.1",
+    "typescript": "^5.5.3",
+    "vitest": "^2.0.3"
+  }
+}

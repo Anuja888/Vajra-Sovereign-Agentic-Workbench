@@ -1,0 +1,18 @@
+/* VAJRA Design Tokens - Refinery Control Room */
+:root {
+  --bg: #0A0E0F;
+  --surface-1: #10171A;
+  --surface-2: #162024;
+  --surface-3: #1D2A2F;
+  --line: #27373C;
+  --line-strong: #36494F;
+  --ink: #E6EEEC;
+  --ink-dim: #98ACA8;
+  --ink-faint: #62767A;
+  --accent: #C6FF3D;
+  --accent-ink: #0D1305;
+  --ok: #38BDF8;
+  --warn: #FBBF24;
+  --danger: #FF6B3D;
+  --info: #A78BFA;
+}

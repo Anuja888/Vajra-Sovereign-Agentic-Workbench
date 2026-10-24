@@ -1,0 +1,32 @@
+# Build outputs
+**/dist
+**/node_modules
+
+# Test & dev artifacts
+**/*.test.ts
+**/*.test.tsx
+**/coverage
+**/.nyc_output
+**/*.log
+
+# Dev tooling
+.git
+.github
+**/.eslintrc*
+**/.prettierrc*
+**/vitest.config.*
+**/playwright.config.*
+
+# Docs and scripts (not needed in image)
+docs/
+evals/
+infra/scripts/demo.mjs
+
+# Env files (never bake secrets into images)
+.env
+.env.*
+!.env.example
+
+# OS
+**/.DS_Store
+**/Thumbs.db

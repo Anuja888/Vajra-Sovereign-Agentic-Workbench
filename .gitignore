@@ -1,0 +1,18 @@
+node_modules
+.DS_Store
+dist
+build
+.env
+.env.local
+.env.*.local
+*.log
+.vscode
+.idea
+coverage
+.vite
+*.out
+*.err
+*.log
+
+# Docker local state
+docker-compose.override.yml

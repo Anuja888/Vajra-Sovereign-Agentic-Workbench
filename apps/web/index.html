@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="VAJRA — Sovereign Agentic Workbench. Self-hosted AI for confidential industrial work. Zero egress." />
+    <meta name="theme-color" content="#0A0E0F" />
+    <!-- Strict CSP: no external connections, no external scripts, no external fonts -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' http://127.0.0.1:3000; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob:; script-src 'self' 'unsafe-inline'; worker-src 'self' blob:;" />
+    <title>VAJRA — Sovereign Agentic Workbench</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

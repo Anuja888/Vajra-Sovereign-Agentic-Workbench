@@ -1,0 +1,35 @@
+{
+  "name": "vajra",
+  "version": "1.0.0",
+  "description": "VAJRA - Sovereign Agentic Workbench",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20",
+    "pnpm": ">=9"
+  },
+  "scripts": {
+    "dev": "pnpm --parallel --filter=./apps/* dev",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "pnpm -r lint",
+    "test": "pnpm -r test",
+    "test:e2e": "pnpm --filter=./apps/web test:e2e",
+    "verify:airgap": "pnpm --filter=./infra verify:airgap",
+    "demo": "pnpm --filter=./infra demo"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "infra",
+    "evals"
+  ],
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@typescript-eslint/eslint-plugin": "^8.71.2",
+    "@typescript-eslint/parser": "^8.71.2",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.7"
+  }
+}

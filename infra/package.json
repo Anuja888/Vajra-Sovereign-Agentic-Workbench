@@ -1,0 +1,9 @@
+{
+  "name": "@vajra/infra",
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "demo": "node ./scripts/demo.mjs",
+    "verify:airgap": "node ./scripts/verify-airgap.mjs"
+  }
+}

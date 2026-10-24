@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    name: Typecheck · Lint · Test · Build
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Build packages in dependency order (shared first, then consumers)
+      - name: Build shared package
+        run: pnpm --filter=@vajra/shared build
+
+      - name: Build agent-core package
+        run: pnpm --filter=@vajra/agent-core build
+
+      - name: Build models package
+        run: pnpm --filter=@vajra/models build
+
+      - name: Typecheck all packages
+        run: pnpm -r typecheck
+
+      - name: Lint
+        run: pnpm -r lint || true  # lint warnings don't fail CI during development
+
+      - name: Run all tests
+        run: pnpm -r test
+
+      - name: Build web app
+        run: pnpm --filter=./apps/web build
+
+      - name: Verify air-gap (smoke)
+        run: |
+          # Start the server in background for airgap smoke check
+          pnpm --filter=./apps/server dev &
+          SERVER_PID=$!
+          sleep 6
+          # Run a quick health check
+          curl -f http://127.0.0.1:3000/health || exit 1
+          # Run a quick red-team check
+          RESULT=$(curl -sf -X POST http://127.0.0.1:3000/api/redteam/attempt \
+            -H "Content-Type: application/json" \
+            -d '{"type":"fetch"}')
+          echo "$RESULT"
+          echo "$RESULT" | grep -q '"blocked":true' || exit 1
+          kill $SERVER_PID 2>/dev/null || true
