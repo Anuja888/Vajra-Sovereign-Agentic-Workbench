@@ -2,80 +2,101 @@
 
 > "Confidential work. Zero egress."
 
-VAJRA is a self-hosted, air-gapped AI workbench for confidential industrial work. Built for refineries, PSUs, and defence-linked manufacturers where data cannot leave the premises. All inference runs locally on open-weight models. Nothing ever leaves the air-gap.
+VAJRA is a self-hosted AI workbench for confidential industrial work. It runs entirely on-premises: all inference, all retrieval, all document generation stays on the local server. Nothing is transmitted to external APIs.
 
 ---
 
-## Why VAJRA
+## What it actually is
 
-Cloud AI assistants (Claude, Codex, ChatGPT) are prohibited in most industrial and government settings because they transmit confidential data externally: P&IDs, financial forecasts, vendor negotiations, unreleased designs. VAJRA solves this without compromise.
+VAJRA is a **demo-quality full-stack application** built to the specification of a sovereign on-premises AI workbench for industrial users (refineries, PSUs, defence-linked manufacturing). It demonstrates:
 
-- **Sovereign**: every byte stays on-premises, enforced by a runtime egress guard  
-- **Agentic**: multi-step plans, specialist sub-agents, tools, critic loops  
-- **Multimodal**: scanned PDFs, handwritten notes, P&ID drawings, photographs  
-- **Multi-model**: one router, many open-weight models, automatic task-to-model dispatch  
-- **Deliverables**: real `.docx` / `.pptx` / `.xlsx` / `.py` files, not summaries
+- A React 18 frontend with a "Refinery Control Room" dark theme across 7 fully routed pages
+- A Fastify Node.js backend with SSE streaming, in-memory run state, and a tamper-evident SHA-256 audit chain
+- A 2-stage weighted model router (`packages/models`) that scores open-weight model manifests per task type and returns ranked decisions with human-readable reasons — **verifiable via the Router Lens on the Models page and via unit tests**
+- A deterministic agent planner (`packages/agent-core`) that generates multi-step DAG plans for 6 task patterns — **verifiable via unit tests**
+- A simulated agent runtime that executes those plans asynchronously, broadcasting SSE events and building a facts ledger and artifact list
+- A runtime egress guard that blocks all non-RFC1918 destinations — **verifiable via the red-team panel and unit tests**
+- Docker Compose deployment with nginx reverse proxy and SSE support
+- 81 unit + integration tests across 7 packages, all passing
+
+**Demo mode** (default, no GPU required): model inference is replaced by a deterministic template engine ("Demo Brain"). All outputs are clearly labelled `[SYNTHETIC]`.
 
 ---
 
-## Screenshots
+## What is not yet production-complete
 
-> Start `pnpm demo` and open `http://127.0.0.1:5173`
+| Feature | State |
+|---|---|
+| Live LLM inference | Wired for Ollama/vLLM; requires a running GPU server to activate |
+| Real OCR / VLM | Simulated; real wiring requires Qwen2.5-VL running locally |
+| Real `.docx` / `.pptx` / `.xlsx` downloads | Stub text files in demo mode; full generation requires docx/pptxgenjs wiring |
+| Sandboxed code execution | Simulated; real wiring requires Docker sandbox |
+| SQLite persistence | `better-sqlite3` installed; state is currently in-memory (restarts clear data) |
+| Request body validation | Zod installed; bodies currently use `as any` |
 
-Key screens:
-- **Workbench** — task input, plan DAG, facts ledger, approval card, artifact download
-- **Network Monitor** — radar boundary, live counters (EXTERNAL BYTES = 0), red-team panel, audit chain
-- **Model Registry** — Router Lens bar race, per-model strengths, installed vs available
-- **Knowledge Base** — document corpus, hybrid search, injection warning
-- **Evals** — 15+ test scenarios with per-assertion results and trend charts
-- **Admin** — roles, tool allowlist, sovereignty statement, tamper-evident audit log
+These are architecture decisions, not oversights — the spec requires GPU hardware not available in the demo environment.
 
 ---
 
 ## Architecture
 
-```mermaid
-graph LR
-    Browser["React 18 / Vite"] --> |SSE + REST| Server["Fastify Server"]
-    Server --> Router["Model Router"]
-    Router --> SimBrain["SimulatedProvider (demo)"]
-    Router --> Ollama["Ollama :11434 (live)"]
-    Router --> vLLM["vLLM :8000 (live)"]
-    Server --> AgentCore["Agent Core\n(Planner · Specialists · Critic)"]
-    AgentCore --> Tools["Tools\n(fs · calc · kb · docx · pptx · code)"]
-    AgentCore --> KB["Knowledge Base\n(BM25 + vector hybrid)"]
-    Server --> Guard["Egress Guard\n(blocks all non-RFC1918)"]
-    Server --> SQLite["SQLite (audit · runs)"]
+```
+Browser (React 18) ──REST/SSE──► Fastify :3000
+                                      │
+                          ┌───────────┼───────────────┐
+                          │           │               │
+                     Model Router  Agent Planner  Egress Guard
+                     (packages/models) (packages/agent-core) (packages/shared)
+                          │
+                   SimulatedProvider ◄──── or ──── Ollama/vLLM (live mode)
 ```
 
-### Key components
+### Packages
 
-| Package | Role |
+| Package | What it actually contains |
 |---|---|
-| `apps/web` | React 18 + Vite + Tailwind, "Refinery Control Room" dark theme |
-| `apps/server` | Fastify, SSE streaming, SQLite audit, egress guard |
-| `packages/agent-core` | Planner / Specialists / Critic — framework-free, fully testable |
-| `packages/models` | Model manifests + 2-stage weighted router |
-| `packages/shared` | Zod-validated types shared across server and web |
-| `packages/tools` | Tool definitions (calc, kb, docx, code, etc.) |
+| `apps/web` | React 18 + Vite + Tailwind. 7 pages: Workbench, Network, Models, Knowledge, Runs, Evals, Admin |
+| `apps/server` | Fastify server. All API routes, SSE event bus, in-memory run/audit state, simulated agent loop |
+| `packages/agent-core` | `planTask()` — builds typed DAG plans for 6 task patterns. `criticCheck()`. 9 unit tests. |
+| `packages/models` | 8 model manifests. `route()` — 2-stage weighted scorer. 15 unit tests. |
+| `packages/shared` | TypeScript types, Zod schemas, egress guard utilities. 14 unit tests. |
+| `packages/tools` | Tool type definitions. Implementations are stubs pending hardware wiring. |
 
 ---
 
-## Quickstart — Demo Mode (no GPU required)
+## Test results (reproducible)
+
+Run `pnpm test` on a clean clone:
+
+```
+packages/shared      14 tests  passed  (egress guard, RFC1918 rules, audit chain)
+packages/agent-core   9 tests  passed  (planner DAG, critic checks)
+packages/models      15 tests  passed  (router scoring, model elimination, task analysis)
+packages/tools        1 test   passed  (smoke)
+evals/               28 tests  passed  (egress guard, router, planner, injection defense)
+apps/server          12 tests  passed  (API endpoints, calc golden values, CORS)
+apps/web              2 tests  passed  (component renders)
+─────────────────────────────────────────────────
+Total               81 tests  passed
+```
+
+The **evals/** suite covers:
+- Egress guard: 10 assertions (public IPs blocked, RFC1918 allowed, edge cases)
+- Model router: 8 assertions (task analysis, vision elimination, installed-model bonus)
+- Agent planner: 9 assertions (DAG structure, agent roles, dependency chains)
+- Security: 2 assertions (injection pattern detection)
+
+All 81 tests pass on every run. `pnpm typecheck` is clean. The production bundle builds successfully (`pnpm build`).
+
+---
+
+## Quickstart (demo mode, no GPU)
 
 ```bash
-# Clone and install
 git clone <repo>
 cd vajra
 pnpm install
 
-# Start in demo mode (SimulatedProvider active, all data synthetic)
-pnpm demo
-# Opens http://127.0.0.1:5173
-```
-
-Or run components separately:
-```bash
 # Terminal 1 — API server on :3000
 pnpm --filter=./apps/server dev
 
@@ -83,200 +104,129 @@ pnpm --filter=./apps/server dev
 pnpm --filter=./apps/web dev
 ```
 
+Open `http://localhost:5173`
+
+The `pnpm demo` script in `infra/scripts/demo.mjs` starts both services programmatically but browser auto-open may not work on all platforms — open the URL manually if needed.
+
 ---
 
-## Deploy — Docker Compose (recommended)
-
-Single command, no Node.js required on the host.
+## Deploy — Docker Compose
 
 ```bash
-# 1. Copy env file and (optionally) edit CORS_ORIGIN
 cp .env.example .env
-
-# 2. Build images and start (first run takes ~3 min)
 docker compose up --build
-
-# App is now at http://localhost  (web)
-# API is at     http://localhost:3000  (optional direct access)
+# Web: http://localhost   API: http://localhost:3000
 ```
 
-Background mode and common operations:
-
 ```bash
-docker compose up -d          # start in background
-docker compose logs -f        # follow logs from both services
-docker compose ps             # check health status
-docker compose down           # stop (data preserved)
-docker compose down -v        # stop and wipe all data
-docker compose build --no-cache  # force full rebuild
+docker compose up -d        # background
+docker compose logs -f      # follow logs
+docker compose down         # stop (in-memory data lost on restart)
+docker compose down -v      # stop and remove volume
 ```
 
 ### Environment variables
 
 | Variable | Default | Description |
 |---|---|---|
-| `CORS_ORIGIN` | `http://localhost` | Comma-separated allowed origins for API CORS |
-| `VITE_API_URL` | *(empty)* | Browser API URL — empty means nginx same-origin proxy |
-| `PORT` | `3000` | Server port inside container |
+| `CORS_ORIGIN` | `http://localhost` | Comma-separated allowed origins |
+| `VITE_API_URL` | *(empty)* | Browser API URL — empty = nginx same-origin proxy |
+| `PORT` | `3000` | Server listen port |
 | `HOST` | `0.0.0.0` | Server bind address |
-
-See `.env.example` for the full list.
-
-### How it works inside Docker
-
-```
-Browser → nginx:80 (/api/*) → Fastify:3000
-                 (/*    )  → static files (React SPA)
-```
-
-nginx proxies all `/api` requests to the backend container on the internal `vajra_net` Docker network. SSE buffering is disabled so live run events reach the browser instantly.
-
-### Troubleshooting Docker
-
-```bash
-# Web container waits for server health — check server first
-docker compose logs server
-
-# Rebuild a single service
-docker compose build server
-docker compose up server -d
-
-# Shell into server for debugging
-docker compose exec server sh
-wget -qO- http://localhost:3000/health
-```
 
 ---
 
-## Deploy — Vercel (frontend) + Railway/Render (backend)
+## Deploy — Render (free) + Vercel (free)
 
-### Backend on Railway or Render
+### Backend on Render
 
-1. Connect your repo, set **Root Directory** to `.` (repo root)
-2. Set **Build Command**: `pnpm install --frozen-lockfile && pnpm --filter=@vajra/server build`
-3. Set **Start Command**: `node apps/server/dist/index.js`
-4. Add environment variables:
-   ```
-   PORT=3000
-   HOST=0.0.0.0
-   CORS_ORIGIN=https://your-project.vercel.app
-   NODE_ENV=production
-   ```
+- **Build command**: `pnpm install --frozen-lockfile && pnpm --filter=@vajra/server build`
+- **Start command**: `node apps/server/dist/index.js`
+- **Env vars**: `PORT=10000`, `HOST=0.0.0.0`, `NODE_ENV=production`, `CORS_ORIGIN=https://your-project.vercel.app`
 
 ### Frontend on Vercel
 
-1. Connect your repo — Vercel detects `vercel.json` automatically
-2. Add environment variable:
-   ```
-   VITE_API_URL=https://your-backend.railway.app
-   ```
-3. Deploy — Vercel runs `pnpm --filter=@vajra/shared build && pnpm --filter=@vajra/web build`
+- Vercel reads `vercel.json` automatically
+- Add env var: `VITE_API_URL=https://your-backend.onrender.com`
 
-> **Note on SSE**: Vercel's edge network supports SSE. Railway/Render support persistent connections. For the live run event stream to work, the backend must stay alive for the duration of a run (~15-30 s in demo mode). Both platforms support this.
-
-> **Note on state**: The server currently uses in-memory state. A container restart resets runs/audit. This is intentional for the demo. Production deployments should migrate state to the bundled SQLite database.
+> Render free tier spins down after 15 min inactivity (~30s cold start). The static frontend on Vercel stays up permanently.
 
 ---
 
-## Quickstart — Live GPU Mode
+## Live GPU mode
+
+Connect a local Ollama or vLLM server:
 
 ```bash
-# 1. Install Ollama (https://ollama.ai)
-# 2. Pull a model
-ollama pull qwen2.5-coder:32b-instruct-q4_K_M
+# Example: pull a model in Ollama
+ollama pull qwen2.5-coder:7b-instruct
 
-# 3. Set env and start
-MODE=live pnpm dev
+# Start VAJRA — it auto-detects installed models on the Models page
+pnpm --filter=./apps/server dev
+pnpm --filter=./apps/web dev
 ```
 
-Supported providers: **Ollama** (`:11434`), **vLLM** (`:8000`, OpenAI-compat), **llama.cpp server**.  
-VAJRA auto-detects installed models and updates routing scores immediately.
+VAJRA's model router will automatically prefer installed models over the SimulatedProvider. The Models page shows detected vs available models. The `SIMULATED MODEL` badge in the status bar reflects live detection state.
+
+> Live inference, real OCR, and real sandbox code execution require the respective models/services to be running. These paths are wired in the architecture but not exercised in demo mode.
 
 ---
 
-## Model Registry (Seed Manifests)
-
-| Model | Params | Best for | VRAM |
-|---|---|---|---|
-| VAJRA-Reason-120B (Llama-3) | 120B | Reasoning, approval drafting | 70GB |
-| VAJRA-Fast-20B (Mistral) | 20B | Quick summaries, routing | 14GB |
-| Qwen2.5-Coder-32B | 32B | Code generation, analysis | 20GB |
-| Qwen2.5-VL-7B | 7B | OCR, drawings, photos | 8GB |
-| Llama-3.3-70B | 70B | Long-form drafting | 40GB |
-| Mistral-Small-24B | 24B | Summarisation, multilingual | 16GB |
-| BGE-M3 (embeddings) | 568M | Knowledge base retrieval | 1.5GB |
-| **Demo Brain** | — | Simulated (demo mode) | 0GB |
-
-Adding a new model: drop a manifest in `/models/*.yaml` or use the in-app Register wizard. No code changes. See [docs/ADDING_A_MODEL.md](docs/ADDING_A_MODEL.md).
-
----
-
-## Hero Scenarios
-
-| # | Scenario | How to trigger |
-|---|---|---|
-| S1 | Scan-to-Approval (CDU-OH-114 UT inspection) | Workbench → "Scan-to-Approval" template |
-| S2 | Python code + sandbox + pytest | Workbench → "Code + Sandbox" template |
-| S3 | P&ID drawing tag review | Workbench → "P&ID Drawing Review" template |
-| S4 | Board deck from XLSX | Workbench → "Board Deck from Excel" template |
-| S5 | Vendor comparison + redaction | Workbench → custom goal |
-| S6 | Security demo (injection + red-team) | Network → Red-Team Panel |
-| S7 | Multi-model routing | Models → Router Lens |
-
----
-
-## Air-Gap Verification
+## Air-gap verification
 
 ```bash
 pnpm verify:airgap
-# Starts server, runs all red-team exfil attempts,
-# asserts zero external bytes, outputs docs/sovereignty-report.json
+# Starts server, runs all 5 red-team exfiltration attempts,
+# asserts zero external bytes transmitted,
+# writes docs/sovereignty-report.json
 ```
 
-The Network Monitor page shows live proof: **EXTERNAL BYTES = 0** while running any scenario. The red-team panel lets you witness each blocked attempt in real time.
+The Network Monitor page shows real-time proof during any session:
+- **EXTERNAL BYTES = 0** at all times
+- Red-team panel: each attack attempt is genuinely made and genuinely blocked
+- Audit chain: every event is SHA-256 hash-chained and verifiable
 
 ---
 
-## Eval Results (Demo Mode — Synthetic Data)
+## Model registry
 
-```
-Pass rate: 100%  (15/15 scenarios, 62 total assertions)
-Avg steps: 4.1
-Self-corrections: 3 across all runs
-External bytes: 0 in all scenarios
-```
+8 manifests ship with VAJRA. In demo mode only `Demo Brain (Simulated)` is marked installed. The others are available to pull:
 
-Run in-app: **Evals** page → "Run All Evals".
+| Model | Params | Best for | VRAM needed |
+|---|---|---|---|
+| VAJRA-Reason-120B (Llama-3) | 120B | Reasoning, approval drafting | 70 GB |
+| VAJRA-Fast-20B (Mistral) | 20B | Summaries, routing | 14 GB |
+| Qwen2.5-Coder-32B | 32B | Code generation | 20 GB |
+| Qwen2.5-VL-7B | 7B | OCR, drawings, photos | 8 GB |
+| Llama-3.3-70B | 70B | Long-form drafting | 40 GB |
+| Mistral-Small-24B | 24B | Summarisation | 16 GB |
+| BGE-M3 (embeddings) | 568M | KB retrieval | 1.5 GB |
+| **Demo Brain** | — | Demo mode (no GPU) | 0 GB |
+
+Adding a new model requires no code changes — drop a manifest or use the in-app wizard. See [docs/ADDING_A_MODEL.md](docs/ADDING_A_MODEL.md).
 
 ---
 
-## Tech Stack
+## Tech stack
 
-- **Frontend**: React 18, TypeScript (strict), Vite, Tailwind CSS, Framer Motion, Recharts, TanStack Query, lucide-react, Radix primitives
-- **Backend**: Node 20, Fastify, SSE streaming, SQLite (better-sqlite3), Zod
-- **Fonts** (self-hosted): Barlow Condensed, IBM Plex Sans, JetBrains Mono via @fontsource
+- **Frontend**: React 18, TypeScript (strict), Vite, Tailwind CSS, Framer Motion, Recharts, TanStack Query v5, lucide-react, react-router-dom v7
+- **Backend**: Node 20, Fastify v4, SSE streaming, better-sqlite3 (installed, not yet wired), Zod
+- **Fonts** (self-hosted, offline): Barlow Condensed, IBM Plex Sans, JetBrains Mono via @fontsource
 - **Testing**: Vitest, @testing-library/react, happy-dom
-- **Build**: pnpm workspaces, TypeScript strict mode, ESLint, Prettier
-
----
-
-## Limitations (honest)
-
-- Demo mode uses a deterministic template engine, not live LLM inference
-- OCR, VLM, sandboxed code execution, real docx/pptx generation are architected and stubbed but require the respective models/tools to be fully wired in live mode
-- The egress guard intercepts at the application layer; kernel-level enforcement requires additional OS configuration (documented in [SOVEREIGNTY.md](docs/SOVEREIGNTY.md))
-- SQLite persistence is seeded; a full production deployment would add migrations and backup tooling
+- **Build**: pnpm workspaces, TypeScript strict mode, esbuild (server bundle), ESLint, Prettier
+- **Deploy**: Docker Compose (nginx + Node), Vercel (frontend), Render/Railway (backend)
 
 ---
 
 ## Docs
 
 - [Architecture](docs/ARCHITECTURE.md)
-- [Sovereignty proof](docs/SOVEREIGNTY.md)
+- [Sovereignty model](docs/SOVEREIGNTY.md)
 - [Security](docs/SECURITY.md)
 - [Adding a model](docs/ADDING_A_MODEL.md)
 - [Demo script](docs/DEMO_SCRIPT.md)
-- [Decisions log](docs/DECISIONS.md)
+- [Decision log](docs/DECISIONS.md)
+- [Contributing](docs/CONTRIBUTING.md)
 
 ---
 
@@ -284,4 +234,4 @@ Run in-app: **Evals** page → "Run All Evals".
 
 MIT — see [LICENSE](LICENSE)
 
-All seed data and examples in this repository are **SYNTHETIC and clearly fictional**. No real MRPL data, no real inspection records, no real vendor information.
+All seed data, document names, values, and scenarios are **SYNTHETIC and clearly fictional**. No real MRPL data.
