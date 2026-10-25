@@ -1,5 +1,7 @@
 import { useState } from 'react';
 
+const API = import.meta.env.VITE_API_URL ?? '';
+
 const types = [
   { type: 'dns', label: 'DNS lookup' },
   { type: 'fetch', label: 'HTTPS fetch' },
@@ -15,7 +17,7 @@ export function RedTeamPanel({ onDone }: { onDone?: () => void }) {
   async function run(t: string) {
     setLoading(t); setError(null);
     try {
-      const r = await fetch('/api/redteam/attempt', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: t }) });
+      const r = await fetch(`${API}/api/redteam/attempt`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: t }) });
       const data = await r.json();
       setResults((p) => ({ ...p, [t]: data }));
       onDone?.();

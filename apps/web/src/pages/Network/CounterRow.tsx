@@ -1,9 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 
+const API = import.meta.env.VITE_API_URL ?? '';
 
 export function CounterRow() {
-  const { data } = useQuery({ queryKey: ['stats2'], queryFn: async () => (await fetch('/api/network/stats')).json(), refetchInterval: 2000 });
+  const { data } = useQuery({ queryKey: ['stats2'], queryFn: async () => (await fetch(`${API}/api/network/stats`)).json(), refetchInterval: 2000 });
   return (
     <div className="grid grid-cols-3 gap-4">
       {[

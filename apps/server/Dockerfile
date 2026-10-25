@@ -31,7 +31,8 @@ COPY apps/server/src         apps/server/src
 COPY apps/server/build.mjs   apps/server/build.mjs
 COPY apps/server/tsconfig.json apps/server/tsconfig.json
 
-# Build: esbuild inlines all @vajra/* workspace source, leaves npm pkgs external
+# Build: esbuild resolves all @vajra/* workspace packages directly from their
+# TypeScript source via alias — no need to pre-build workspace packages first.
 RUN pnpm --filter=@vajra/server build
 
 # ── Stage 2: production runtime ───────────────────────────────────────────────

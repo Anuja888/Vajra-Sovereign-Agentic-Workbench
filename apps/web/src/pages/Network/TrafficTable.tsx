@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 
+const API = import.meta.env.VITE_API_URL ?? '';
+
 type Row = { id: string; ts: number; source: string; destination: string; protocol: string; verdict: string; bytes: number };
 
 export function TrafficTable() {
@@ -9,7 +11,7 @@ export function TrafficTable() {
   const [connected, setConnected] = useState(true);
 
   useEffect(() => {
-    const es = new EventSource('/api/events');
+    const es = new EventSource(`${API}/api/events`);
     es.onmessage = (ev) => { try { const r = JSON.parse(ev.data); setRows((prev) => [r, ...prev].slice(0, 200)); } catch { /* ignore */ } };
     es.onerror = () => setConnected(false);
     es.onopen = () => setConnected(true);

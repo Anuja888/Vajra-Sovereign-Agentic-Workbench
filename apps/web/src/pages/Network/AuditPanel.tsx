@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react';
 
+const API = import.meta.env.VITE_API_URL ?? '';
+
 export function AuditPanel() {
   const [entries, setEntries] = useState<any[]>([]);
   const [status, setStatus] = useState<string | null>(null);
 
-  useEffect(() => { fetch('/api/audit').then((r) => r.json()).then(setEntries); }, []);
+  useEffect(() => { fetch(`${API}/api/audit`).then((r) => r.json()).then(setEntries); }, []);
 
   async function verify() {
-    const r = await fetch('/api/audit/verify', { method: 'POST' });
+    const r = await fetch(`${API}/api/audit/verify`, { method: 'POST' });
     const d = await r.json();
     setStatus(d.ok ? 'OK' : `TAMPERED at ${d.brokenAt}`);
   }

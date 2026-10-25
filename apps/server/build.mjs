@@ -3,6 +3,12 @@
 // into a single ESM file. npm packages stay external (resolved from node_modules).
 import { build } from 'esbuild';
 import { writeFileSync, mkdirSync } from 'fs';
+import { resolve, dirname } from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+// Repo root is two levels up from apps/server
+const root = resolve(__dirname, '..', '..');
 
 mkdirSync('dist', { recursive: true });
 
@@ -32,6 +38,15 @@ await build({
   format: 'esm',
   outfile: 'dist/index.js',
   external,
+  // Resolve @vajra/* directly from TypeScript source, bypassing dist/ folders
+  // that don't exist until each package is individually built. This lets the
+  // Dockerfile skip pre-building workspace packages entirely.
+  alias: {
+    '@vajra/shared':     resolve(root, 'packages/shared/src/index.ts'),
+    '@vajra/agent-core': resolve(root, 'packages/agent-core/src/index.ts'),
+    '@vajra/models':     resolve(root, 'packages/models/src/index.ts'),
+    '@vajra/tools':      resolve(root, 'packages/tools/src/index.ts'),
+  },
   banner: {
     js: '// VAJRA Server bundle — esbuild. SYNTHETIC DATA ONLY.',
   },
