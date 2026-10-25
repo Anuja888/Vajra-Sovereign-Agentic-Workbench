@@ -1,5 +1,4 @@
 {
-  "comment": "VAJRA — Vercel frontend config. Backend must be deployed separately (Railway/Render/VPS).",
   "buildCommand": "pnpm --filter=@vajra/shared build && pnpm --filter=@vajra/web build",
   "outputDirectory": "apps/web/dist",
   "installCommand": "pnpm install --frozen-lockfile",
