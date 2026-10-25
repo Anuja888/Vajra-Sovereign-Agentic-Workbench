@@ -37,6 +37,6 @@ export function recordBlocked() { blockedCount++; }
 export function recordLocal(bytes = 0) { localCount++; externalBytes += bytes; }
 export function recordExternal(bytes: number) { externalBytes += bytes; }
 
-export function installGuard(_allowlist: string[] = []) {
+export function installGuard() {
   // no-op stub for environment; real enforcement lives in server bootstrap
 }

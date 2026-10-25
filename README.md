@@ -1,5 +1,8 @@
 # VAJRA — Sovereign Agentic Workbench
 
+> **Hosted demo: synthetic data, simulated model, not air-gapped.**
+> The live deployment runs on Vercel (frontend) and Render (backend) — public cloud infrastructure. The air-gap and sovereignty features described below are properties of the self-hosted Docker Compose deployment, not the hosted demo.
+
 > "Confidential work. Zero egress."
 
 VAJRA is a self-hosted AI workbench for confidential industrial work. It runs entirely on-premises: all inference, all retrieval, all document generation stays on the local server. Nothing is transmitted to external APIs.
